@@ -7,13 +7,16 @@ VAGRANTFILE_API_VERSION = "2"
 @initMaster = <<SCRIPT
 sudo docker pull swarm
 sudo docker run --rm swarm create > /vagrant/cluster_id
+
+CLUSTER_ID=$(cat /vagrant/cluster_id)
+sudo docker run -d --name swarm_master -p 2375:2375 swarm manage token://${CLUSTER_ID}
 SCRIPT
 
 @initNode = <<SCRIPT
 CLUSTER_ID=$(cat /vagrant/cluster_id)
 sudo docker daemon -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock &
 sudo docker pull swarm
-docker run -d swarm join --addr=${1}:2375 token://${CLUSTER_ID}
+sudo docker run -d swarm join --addr=${1}:2375 token://${CLUSTER_ID}
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
