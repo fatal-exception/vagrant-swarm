@@ -18,6 +18,3 @@ To add new node into the pool you must restart master
 ```
 make restart_cluster
 ```
-
-Bug
-* At the moment I have a problem to do all in automatic.. WIP.. Helps
