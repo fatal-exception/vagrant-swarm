@@ -20,8 +20,8 @@ sudo docker daemon -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock &>/var/l
 sudo docker pull swarm
 sudo docker run -d swarm join --addr=${1}:2375 token://${CLUSTER_ID}
 SCRIPT
-Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "ubuntu/vivid64"
+Vagrant.configure(vagrantfile_api_version) do |config|
+  config.vm.box = "ubuntu/trusty64"
   config.vm.provision "docker"
 
   config.vm.define "swarm-master" do |node|
