@@ -1,4 +1,9 @@
-A speedy way to create a Docker Swarm's cluster
+A speedy way to create a Docker Swarm standalone(legacy) cluster, with consul discovery backend
+
+### Start consul
+```
+vagrant up consul
+```
 
 ### Start master
 ```
@@ -18,3 +23,7 @@ To add new node into the pool you must restart master
 ```
 make restart_cluster
 ```
+
+### Tasks 
+make cluster_info
+make cluster_nodes
