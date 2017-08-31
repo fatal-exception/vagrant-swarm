@@ -14,11 +14,12 @@ fi
 SCRIPT
 
 @initNode = <<SCRIPT
+sudo docker pull swarm
 sudo service docker stop
 CLUSTER_ID=$(cat /vagrant/cluster_id)
-sudo docker daemon -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock &>/var/log/docker.log &
-sudo docker pull swarm
-sudo docker run -d swarm join --addr=${1}:2375 token://${CLUSTER_ID}
+sudo dockerd -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock &>/var/log/docker.log &
+echo "Waiting for docker daemon to start" ; sleep 5
+sudo docker -H :2375 run -d swarm join --addr=${1}:2375 token://${CLUSTER_ID}
 SCRIPT
 Vagrant.configure(vagrantfile_api_version) do |config|
   config.vm.box = "ubuntu/trusty64"
