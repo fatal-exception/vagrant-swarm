@@ -1,4 +1,5 @@
-A speedy way to create a Docker Swarm standalone(legacy) cluster, with consul discovery backend
+A speedy way to create a Docker Swarm standalone(legacy) cluster, with consul discovery backend.
+
 
 ### Start consul
 ```
