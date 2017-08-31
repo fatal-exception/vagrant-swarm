@@ -2,7 +2,7 @@
 # vi: set ft=ruby :
 #
 
-VAGRANTFILE_API_VERSION = "2"
+vagrantfile_api_version = "2"
 
 @initMaster = <<SCRIPT
 if [ ! -f "/vagrant/cluster_id" ]; then
