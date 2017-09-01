@@ -1,43 +1,52 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 #
+require 'erb'
 
 vagrantfile_api_version = "2"
 
-@initConsul = <<SCRIPT
-if [[ -z $(docker ps -q) ]] ; then
-    sudo docker pull consul
-    sudo docker run -dp 8500:8500 --name consul consul
-fi
-SCRIPT
+## consul ports needed are %w(8300 8301 8302 8400 8500 8600)
 
-@initMaster = <<SCRIPT
-if [[ -z $(docker ps -q) ]] ; then
-    sudo docker pull swarm
-    sudo docker run -d --name swarm_master -p 2333:2375 swarm manage consul://192.168.13.253:8500
-fi
-SCRIPT
+@initConsul = ERB.new(<<-TEMPLATE).result(binding)
+sudo docker pull consul
+sudo docker rm -f consul || true
+docker run -d --name consul --net=host -e 'CONSUL_LOCAL_CONFIG={"skip_leave_on_interrupt": true}' consul agent -server -bind=192.168.13.253 -client=192.168.13.253 -bootstrap-expect=1
+TEMPLATE
 
-@initNode = <<SCRIPT
+@initMaster = ERB.new(<<-TEMPLATE).result(binding)
+sudo docker pull consul
 sudo docker pull swarm
+sudo docker rm -f swarm_master || true
+sudo docker rm -f consul || true
+sudo docker run -d -e 'CONSUL_LOCAL_CONFIG={"leave_on_terminate": true}' --net=host --name consul consul consul agent -bind=192.168.13.1 -client 192.168.13.1 -data-dir=/tmp/consul -retry-join 192.168.13.253
+sudo docker run -d --net=host --name swarm_master -p 2333:2375 swarm manage consul://192.168.13.1:8500
+TEMPLATE
+
+@initNode = ERB.new(<<-TEMPLATE).result(binding)
+sudo docker pull swarm
+sudo docker pull consul
+docker rm -f consul || true
+docker rm -f swarm || true
 sudo service docker stop
-CLUSTER_ID=$(cat /vagrant/cluster_id)
 sudo dockerd -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock &>/var/log/docker.log &
 echo "Waiting for docker daemon to start" ; sleep 5
-sudo docker -H :2375 run -d swarm join --addr=${1}:2375 consul://192.168.13.253:8500
-SCRIPT
+sudo docker -H :2375 run -d --name swarm swarm join --addr=${1}:2375 consul://${1}:8500
+sudo docker -H :2375 run -d -e 'CONSUL_LOCAL_CONFIG={"leave_on_terminate": true}' --net=host --name consul consul consul agent -bind=${1} -client=${1} -data-dir=/tmp/consul -retry-join 192.168.13.253
+TEMPLATE
+
 Vagrant.configure(vagrantfile_api_version) do |config|
   config.vm.box = "ubuntu/trusty64"
   config.vm.provision "docker"
 
   # consul
   config.vm.define "consul" do |node|
+	node.vm.hostname = "consul"
     node.vm.network "private_network", ip: "192.168.13.253"
-    node.vm.network "forwarded_port", guest: 8500, host: 8500
     node.vm.provision "shell", inline: @initConsul
   end
 
   config.vm.define "swarm-master" do |node|
+    node.vm.hostname = "swarm-master"
     node.vm.network "private_network", ip: "192.168.13.1"
     node.vm.network "forwarded_port", guest: 2333, host: 2333
     node.vm.provision "shell", inline: @initMaster
@@ -45,6 +54,7 @@ Vagrant.configure(vagrantfile_api_version) do |config|
 
   [1,2,3].each do |nodeNumber|
     config.vm.define "swarm-node-#{nodeNumber}" do |node|
+      node.vm.hostname = "swarm-node-#{nodeNumber}"
       node.vm.network "private_network", ip: "192.168.13.#{100+nodeNumber}"
       node.vm.provision "shell", inline: @initNode, args: "192.168.13.#{100+nodeNumber}"
     end
