@@ -8,3 +8,7 @@ consul_nodes:
 	vagrant ssh consul -c 'curl 192.168.13.253:8500/v1/catalog/nodes' | python -m json.tool
 consul_services:
 	vagrant ssh consul -c 'curl 192.168.13.253:8500/v1/catalog/services' | python -m json.tool
+consul_service:
+	vagrant ssh consul -c 'curl 192.168.13.253:8500/v1/catalog/service/$(service)' | python -m json.tool
+consul_healthchecks:
+	vagrant ssh consul -c 'curl -i 192.168.13.253:8500/health/checks/$(service)'
