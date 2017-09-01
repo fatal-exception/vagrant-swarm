@@ -6,3 +6,5 @@ swarm_nodes:
 	vagrant ssh swarm-master -c "docker run swarm list consul://192.168.13.1:8500/"
 consul_nodes:
 	vagrant ssh consul -c 'curl 192.168.13.253:8500/v1/catalog/nodes' | python -m json.tool
+consul_services:
+	vagrant ssh consul -c 'curl 192.168.13.253:8500/v1/catalog/services' | python -m json.tool

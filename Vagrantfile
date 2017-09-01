@@ -16,10 +16,15 @@ TEMPLATE
 @initMaster = ERB.new(<<-TEMPLATE).result(binding)
 sudo docker pull consul
 sudo docker pull swarm
+sudo docker pull gliderlabs/registrator
 sudo docker rm -f swarm_master || true
 sudo docker rm -f consul || true
+sudo docker rm -f registrator || true
+sudo docker rm -f registrator-kv || true
 sudo docker run -d -e 'CONSUL_LOCAL_CONFIG={"leave_on_terminate": true}' --net=host --name consul consul consul agent -bind=192.168.13.1 -client 192.168.13.1 -data-dir=/tmp/consul -retry-join 192.168.13.253
 sudo docker run -d --net=host --name swarm_master -p 2333:2375 swarm manage consul://192.168.13.1:8500
+sudo docker run -v /var/run/docker.sock:/tmp/docker.sock:rw -d --name registrator gliderlabs/registrator -ip 192.168.13.1 -ttl 600 --ttl-refresh 300 -resync 600 -cleanup consul://192.168.13.1:8500
+sudo docker run -v /var/run/docker.sock:/tmp/docker.sock:rw -d --name registrator-kv gliderlabs/registrator -ip 192.168.13.1 consulkv://192.168.13.1:8500/services
 TEMPLATE
 
 @initNode = ERB.new(<<-TEMPLATE).result(binding)
