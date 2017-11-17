@@ -31,6 +31,8 @@ sudo docker run -v /var/run/docker.sock:/tmp/docker.sock:rw -d --name registrato
 sudo docker exec consul apk update 
 sudo docker exec consul apk add docker
 sudo docker exec consul chmod 666 /var/run/docker.sock
+sudo apt-get install -y python-pip
+sudo pip install docker-py
 TEMPLATE
 
 @initNode = ERB.new(<<-TEMPLATE).result(binding)
@@ -40,9 +42,6 @@ docker rm -f consul || true
 docker rm -f swarm || true
 docker rm -f registrator || true
 docker rm -f registrator-kv || true
-sudo service docker stop
-sudo dockerd -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock &>/var/log/docker.log &
-echo "Waiting for docker daemon to start" ; sleep 5
 sudo docker -H :2375 run -d --name swarm swarm join --addr=${1}:2375 consul://${1}:8500
 sudo docker -H :2375 run -v /var/run/docker.sock:/var/run/docker.sock:rw -d -e 'CONSUL_LOCAL_CONFIG={"leave_on_terminate": true}' --net=host --name consul consul:#{CONSUL_VERSION} consul agent -bind=${1} -client=${1} -data-dir=/tmp/consul -retry-join 192.168.13.253
 sudo docker run -v /var/run/docker.sock:/tmp/docker.sock:rw -d --name registrator gliderlabs/registrator -ip ${1} -ttl 600 --ttl-refresh 300 -resync 600 -cleanup consul://${1}:8500
@@ -55,7 +54,6 @@ TEMPLATE
 
 Vagrant.configure(vagrantfile_api_version) do |config|
   config.vm.box = "ubuntu/trusty64"
-  config.vm.provision "docker"
 
   # consul
   config.vm.define "consul" do |node|
@@ -65,6 +63,9 @@ Vagrant.configure(vagrantfile_api_version) do |config|
   end
 
   config.vm.define "swarm-master" do |node|
+    node.vm.provision "docker" do |d|
+      d.post_install_provision "shell", inline:'echo export DOCKER_OPTS=\"--insecure-registry registry.tools.np.priority.o2.co.uk:80\" >> /etc/default/docker'
+    end
     node.vm.hostname = "swarm-master"
     node.vm.network "private_network", ip: "192.168.13.1"
     node.vm.network "forwarded_port", guest: 2333, host: 2333
@@ -73,6 +74,9 @@ Vagrant.configure(vagrantfile_api_version) do |config|
 
   [1,2,3].each do |nodeNumber|
     config.vm.define "swarm-node-#{nodeNumber}" do |node|
+      node.vm.provision "docker" do |d|
+        d.post_install_provision "shell", inline:'echo export DOCKER_OPTS=\"--insecure-registry registry.tools.np.priority.o2.co.uk:80 -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock\" >> /etc/default/docker'
+      end
       node.vm.hostname = "swarm-node-#{nodeNumber}"
       node.vm.network "private_network", ip: "192.168.13.#{100+nodeNumber}"
       node.vm.provision "shell", inline: @initNode, args: "192.168.13.#{100+nodeNumber}"
