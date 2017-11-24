@@ -64,7 +64,7 @@ Vagrant.configure(vagrantfile_api_version) do |config|
 
   config.vm.define "swarm-master" do |node|
     node.vm.provision "docker" do |d|
-      d.post_install_provision "shell", inline:'echo export DOCKER_OPTS=\"--insecure-registry registry.tools.np.priority.o2.co.uk:80\" >> /etc/default/docker'
+      d.post_install_provision "shell", inline:'sed -i "/DOCKER_OPTS/d" /etc/default/docker ; echo export DOCKER_OPTS=\"--insecure-registry registry.tools.np.priority.o2.co.uk:80\" >> /etc/default/docker ; service docker restart'
     end
     node.vm.hostname = "swarm-master"
     node.vm.network "private_network", ip: "192.168.13.1"
@@ -75,7 +75,7 @@ Vagrant.configure(vagrantfile_api_version) do |config|
   [1,2,3].each do |nodeNumber|
     config.vm.define "swarm-node-#{nodeNumber}" do |node|
       node.vm.provision "docker" do |d|
-        d.post_install_provision "shell", inline:'echo export DOCKER_OPTS=\"--insecure-registry registry.tools.np.priority.o2.co.uk:80 -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock\" >> /etc/default/docker'
+        d.post_install_provision "shell", inline:'sed -i "/DOCKER_OPTS/d" /etc/default/docker ; echo export DOCKER_OPTS=\"--insecure-registry registry.tools.np.priority.o2.co.uk:80 -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock\" >> /etc/default/docker ; service docker restart'
       end
       node.vm.hostname = "swarm-node-#{nodeNumber}"
       node.vm.network "private_network", ip: "192.168.13.#{100+nodeNumber}"
