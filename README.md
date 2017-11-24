@@ -1,17 +1,22 @@
 A speedy way to create a Docker Swarm standalone(legacy) cluster, with consul discovery backend.
 
+### Get started
+bash init.sh
 
-### Start consul
+### Manual setup
+
+
+## Start consul
 ```
 vagrant up consul
 ```
 
-### Start master
+## Start master
 ```
 vagrant up swarm-master
 ```
 
-### Start nodes
+## Start nodes
 This vagrantfile support 3 nodes but it is easy to modify
 ```
 vagrant up swarm-node-1
